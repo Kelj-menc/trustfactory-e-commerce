@@ -4,76 +4,67 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Product;
+use App\Models\CartItem;
+use Illuminate\Support\Facades\Auth;
 
 class ShoppingCart extends Component
 {
-    public $cart = [];
-
-    // Učitava korpu iz sesije čim se komponenta pokrene
-    public function mount()
-    {
-        $this->cart = session()->get('cart', []);
-    }
-
     public function addToCart($productId)
     {
         $product = Product::findOrFail($productId);
 
+        // Provera zaliha
         if ($product->stock_quantity <= 0) {
-            session()->flash('error', 'Proizvod nije na stanju.');
+            session()->flash('error', 'Nema na stanju.');
             return;
         }
 
-        if (isset($this->cart[$productId])) {
-            if ($this->cart[$productId]['quantity'] < $product->stock_quantity) {
-                $this->cart[$productId]['quantity']++;
+        // Pronađi stavku u bazi za trenutnog korisnika
+        $cartItem = Auth::user()->cartItems()->where('product_id', $productId)->first();
+
+        if ($cartItem) {
+            if ($cartItem->quantity < $product->stock_quantity) {
+                $cartItem->increment('quantity');
             } else {
                 session()->flash('error', 'Nema više zaliha.');
-                return;
             }
         } else {
-            $this->cart[$productId] = [
-                'name' => $product->name,
-                'price' => $product->price,
+            Auth::user()->cartItems()->create([
+                'product_id' => $productId,
                 'quantity' => 1
-            ];
+            ]);
         }
-
-        $this->save();
     }
 
-    public function updateQuantity($productId, $newQuantity)
+    public function updateQuantity($itemId, $newQuantity)
     {
-        $product = Product::find($productId);
+        $cartItem = Auth::user()->cartItems()->findOrFail($itemId);
+        $product = $cartItem->product;
 
         if ($newQuantity > 0 && $newQuantity <= $product->stock_quantity) {
-            $this->cart[$productId]['quantity'] = $newQuantity;
+            $cartItem->update(['quantity' => $newQuantity]);
         } elseif ($newQuantity <= 0) {
-            $this->removeFromCart($productId);
+            $cartItem->delete();
         }
-
-        $this->save();
     }
 
-    public function removeFromCart($productId)
+    public function removeFromCart($itemId)
     {
-        unset($this->cart[$productId]);
-        $this->save();
-    }
-
-    private function save()
-    {
-        session()->put('cart', $this->cart);
+        Auth::user()->cartItems()->where('id', $itemId)->delete();
     }
 
     public function getTotalProperty()
     {
-        return collect($this->cart)->sum(fn($item) => $item['price'] * $item['quantity']);
+        return Auth::user()->cartItems->sum(function($item) {
+            return $item->product->price * $item->quantity;
+        });
     }
+
     public function render()
     {
         return view('livewire.shopping-cart', [
-            'products' => Product::all()
+            'products' => Product::all(),
+            'cartItems' => Auth::user()->cartItems()->with('product')->get()
         ]);
     }
 }
