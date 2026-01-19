@@ -9,25 +9,23 @@ use Illuminate\Support\Facades\Auth;
 
 class ShoppingCart extends Component
 {
+    public $stockErrors = []; // Niz za greške po ID-u
+
     public function addToCart($productId)
     {
         $product = Product::findOrFail($productId);
+        $this->stockErrors = []; // Resetuj greške
 
-        // Provera zaliha
-        if ($product->stock_quantity <= 0) {
-            session()->flash('error', 'Nema na stanju.');
+        $cartItem = Auth::user()->cartItems()->where('product_id', $productId)->first();
+        $currentQuantity = $cartItem ? $cartItem->quantity : 0;
+
+        if (($currentQuantity + 1) > $product->stock_quantity) {
+            $this->stockErrors[$productId] = "Nema više zaliha (max: {$product->stock_quantity}).";
             return;
         }
 
-        // Pronađi stavku u bazi za trenutnog korisnika
-        $cartItem = Auth::user()->cartItems()->where('product_id', $productId)->first();
-
         if ($cartItem) {
-            if ($cartItem->quantity < $product->stock_quantity) {
-                $cartItem->increment('quantity');
-            } else {
-                session()->flash('error', 'Nema više zaliha.');
-            }
+            $cartItem->increment('quantity');
         } else {
             Auth::user()->cartItems()->create([
                 'product_id' => $productId,
@@ -40,12 +38,25 @@ class ShoppingCart extends Component
     {
         $cartItem = Auth::user()->cartItems()->findOrFail($itemId);
         $product = $cartItem->product;
+        $this->stockErrors = [];
 
-        if ($newQuantity > 0 && $newQuantity <= $product->stock_quantity) {
-            $cartItem->update(['quantity' => $newQuantity]);
-        } elseif ($newQuantity <= 0) {
-            $cartItem->delete();
+        // 1. Ako je ukucano više nego što ima na stanju
+        if ($newQuantity > $product->stock_quantity) {
+            $this->stockErrors['cart_' . $itemId] = "Max dostupno: {$product->stock_quantity}";
+            $cartItem->update(['quantity' => $product->stock_quantity]);
         }
+        // 2. Ako je ukucana nula ili negativan broj
+        elseif ($newQuantity <= 0) {
+            $this->removeFromCart($itemId);
+        }
+        // 3. Regularan unos
+        else {
+            $cartItem->update(['quantity' => $newQuantity]);
+        }
+
+        // OVO JE KLJUČ: Prisilno osvežavamo kolekciju iz baze podataka 
+        // kako bi Blade dobio novu vrednost $item->quantity
+        $this->render();
     }
 
     public function removeFromCart($itemId)
@@ -55,9 +66,7 @@ class ShoppingCart extends Component
 
     public function getTotalProperty()
     {
-        return Auth::user()->cartItems->sum(function($item) {
-            return $item->product->price * $item->quantity;
-        });
+        return Auth::user()->cartItems->sum(fn($item) => $item->product->price * $item->quantity);
     }
 
     public function render()
