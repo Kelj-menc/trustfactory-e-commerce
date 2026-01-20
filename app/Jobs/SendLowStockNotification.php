@@ -16,13 +16,13 @@ class SendLowStockNotification implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $product;
+    protected $products;
     /**
      * Create a new job instance.
      */
-    public function __construct(Product $product)
+    public function __construct(array $products)
     {
-        $this->product = $product;
+        $this->products = $products;
     }
 
     /**
@@ -31,6 +31,6 @@ class SendLowStockNotification implements ShouldQueue
     public function handle(): void
     {
         $adminEmail = 'admin@example.com'; // admin email
-        Mail::to($adminEmail)->send(new LowStockNotificationMail($this->product));
+        Mail::to($adminEmail)->send(new LowStockNotificationMail($this->products));
     }
 }

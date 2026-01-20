@@ -36,7 +36,7 @@ class ShoppingCart extends Component
         }
 
         // Added: Check low lvl state after checking stock level
-        $this->checkStockLevel($product);
+        //$this->checkStockLevel($product);
     }
 
     public function updateQuantity($itemId, $newQuantity)
@@ -60,7 +60,7 @@ class ShoppingCart extends Component
         }
 
         // Added: Check low lvl state after checking stock level
-        $this->checkStockLevel($product);
+        //$this->checkStockLevel($product);
 
         // OVO JE KLJUČ: Prisilno osvežavamo kolekciju iz baze podataka 
         // kako bi Blade dobio novu vrednost $item->quantity
@@ -77,44 +77,38 @@ class ShoppingCart extends Component
         return Auth::user()->cartItems->sum(fn($item) => $item->product->price * $item->quantity);
     }
 
-    private function checkStockLevel(Product $product)
-    {
-        //dd($product->stock_quantity);
-        $lowStockThreshold = 3; // Definišite šta je 'nisko'
-
-        if ($product->stock_quantity < $lowStockThreshold) {
-            //dd($product->stock_quantity);
-            // Dispatch the Job
-            SendLowStockNotification::dispatch($product);
-        }
-    }
+    
 
     public function checkout()
     {
         $user = Auth::user();
         $items = $user->cartItems()->with('product')->get();
+        $lowStockProducts = []; // Niz za prikupljanje kritičnih proizvoda
+        $lowStockThreshold = 3;
 
         foreach ($items as $item) {
             $product = $item->product;
 
-            // 1. Finalna provera pre skidanja sa stanja
             if ($product->stock_quantity >= $item->quantity) {
-
-                // 2. Smanji zalihe u bazi
                 $product->decrement('stock_quantity', $item->quantity);
 
-                // 3. Proveri da li treba poslati email adminu (Low Stock)
-                $this->checkStockLevel($product);
-
+                // Proveri da li je proizvod pao ispod limita nakon prodaje
+                if ($product->stock_quantity < $lowStockThreshold) {
+                    $lowStockProducts[] = $product;
+                }
             } else {
-                session()->flash('error', "Nažalost, nema dovoljno zaliha za {$product->name}.");
+                session()->flash('error', "Nema dovoljno zaliha za {$product->name}.");
                 return;
             }
         }
-        // 4. Isprazni korpu nakon uspešne kupovine
-        $user->cartItems()->delete();
 
-        session()->flash('message', 'Uspešno ste obavili kupovinu!');
+        // 3. Ako ima proizvoda sa niskim zalihama, pošalji JEDAN Job sa celim nizom
+        if (!empty($lowStockProducts)) {
+            SendLowStockNotification::dispatch($lowStockProducts);
+        }
+
+        $user->cartItems()->delete();
+        session()->flash('message', 'Kupovina uspešna!');
     }
 
     public function render()

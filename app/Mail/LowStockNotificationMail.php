@@ -15,13 +15,13 @@ class LowStockNotificationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $product;
+    public $products;
     /**
      * Create a new message instance.
      */
-    public function __construct(Product $product)
+    public function __construct(array $products)
     {
-        $this->product = $product;
+        $this->products = $products;
     }
 
     /**
@@ -30,7 +30,7 @@ class LowStockNotificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Low Stock Notification Mail' . $this->product->name,
+            subject: 'Low Stock Of Items Notification Mail',
         );
     }
 

@@ -1,22 +1,18 @@
 @component('mail::message')
-# Niska Zaliha Proizvoda: {{ $product->name }}
+# Upozorenje o niskim zalihama
 
-Zdravo,
+Sledeći proizvodi su pali ispod limita:
 
-{{-- {{ $product }} je objekat koji se šalje iz Notifikacije (vidi below) --}}
+@foreach($products as $product)
+* **{{ $product->name }}** (Preostalo: {{ $product->stock_quantity }})
+@endforeach
 
-{{-- {!! $product->name !!} za prikaz čiste vrednosti, koristi se ako je potrebna HTML enkapsulacija --}}
+Molimo vas da dopunite zalihe.
 
-Obaveštavamo vas da je zaliha proizvoda **{{ $product->name }}** niska. Trenutno je na stanju samo **{{ $product->stock_quantity }}** komada.
+<!-- @component('mail::button', ['url' => url('/admin/inventory')])
+Idi na Upravljanje Zalihama
+@endcomponent -->
 
-@component('mail::table')
-| Proizvod | Trenutna Zaliha |
-| :--- | :--- |
-| {{ $product->name }} | {{ $product->stock_quantity }} |
-@endcomponent
-
-
-
-Hvala,
-Vaš Tim
+Hvala,<br>
+{{ config('app.name') }}
 @endcomponent
