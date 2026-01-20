@@ -7,6 +7,8 @@ use App\Models\Product;
 use App\Models\CartItem;
 use Illuminate\Support\Facades\Auth;
 
+use App\Jobs\SendLowStockNotification;
+
 class ShoppingCart extends Component
 {
     public $stockErrors = []; // Niz za greške po ID-u
@@ -14,7 +16,7 @@ class ShoppingCart extends Component
     public function addToCart($productId)
     {
         $product = Product::findOrFail($productId);
-        $this->stockErrors = []; // Resetuj greške
+        $this->stockErrors = []; // reset errors
 
         $cartItem = Auth::user()->cartItems()->where('product_id', $productId)->first();
         $currentQuantity = $cartItem ? $cartItem->quantity : 0;
@@ -32,6 +34,9 @@ class ShoppingCart extends Component
                 'quantity' => 1
             ]);
         }
+
+        // Added: Check low lvl state after checking stock level
+        $this->checkStockLevel($product);
     }
 
     public function updateQuantity($itemId, $newQuantity)
@@ -54,6 +59,9 @@ class ShoppingCart extends Component
             $cartItem->update(['quantity' => $newQuantity]);
         }
 
+        // Added: Check low lvl state after checking stock level
+        $this->checkStockLevel($product);
+
         // OVO JE KLJUČ: Prisilno osvežavamo kolekciju iz baze podataka 
         // kako bi Blade dobio novu vrednost $item->quantity
         $this->render();
@@ -67,6 +75,16 @@ class ShoppingCart extends Component
     public function getTotalProperty()
     {
         return Auth::user()->cartItems->sum(fn($item) => $item->product->price * $item->quantity);
+    }
+
+    private function checkStockLevel(Product $product)
+    {
+        $lowStockThreshold = 1; // Definišite šta je 'nisko'
+        
+        if ($product->stock_quantity <= $lowStockThreshold) {
+            // Dispatch the Job
+            SendLowStockNotification::dispatch($product);
+        }
     }
 
     public function render()
