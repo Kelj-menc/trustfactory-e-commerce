@@ -19,7 +19,7 @@ class LowStockNotificationMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(Product $product)
     {
         $this->product = $product;
     }

@@ -79,12 +79,42 @@ class ShoppingCart extends Component
 
     private function checkStockLevel(Product $product)
     {
-        $lowStockThreshold = 1; // Definišite šta je 'nisko'
-        
-        if ($product->stock_quantity <= $lowStockThreshold) {
+        //dd($product->stock_quantity);
+        $lowStockThreshold = 3; // Definišite šta je 'nisko'
+
+        if ($product->stock_quantity < $lowStockThreshold) {
+            //dd($product->stock_quantity);
             // Dispatch the Job
             SendLowStockNotification::dispatch($product);
         }
+    }
+
+    public function checkout()
+    {
+        $user = Auth::user();
+        $items = $user->cartItems()->with('product')->get();
+
+        foreach ($items as $item) {
+            $product = $item->product;
+
+            // 1. Finalna provera pre skidanja sa stanja
+            if ($product->stock_quantity >= $item->quantity) {
+
+                // 2. Smanji zalihe u bazi
+                $product->decrement('stock_quantity', $item->quantity);
+
+                // 3. Proveri da li treba poslati email adminu (Low Stock)
+                $this->checkStockLevel($product);
+
+            } else {
+                session()->flash('error', "Nažalost, nema dovoljno zaliha za {$product->name}.");
+                return;
+            }
+        }
+        // 4. Isprazni korpu nakon uspešne kupovine
+        $user->cartItems()->delete();
+
+        session()->flash('message', 'Uspešno ste obavili kupovinu!');
     }
 
     public function render()
