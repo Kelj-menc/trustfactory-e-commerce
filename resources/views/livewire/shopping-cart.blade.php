@@ -1,20 +1,16 @@
 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
     {{-- To attain knowledge, add things every day; To attain wisdom, subtract things every day. --}}
 
-    <!-- LISTA PROIZVODA -->
+    <!-- list of products -->
     <div class="bg-white p-4 shadow rounded-lg">
-        <h2 class="text-xl font-bold mb-4">Dostupni Proizvodi</h2>
-
-        <!-- @if(session()->has('error'))
-        <div class="bg-red-100 text-red-700 p-2 mb-4 rounded">{{ session('error') }}</div>
-        @endif -->
+        <h2 class="text-xl font-bold mb-4">Available Products</h2>
 
         <div class="space-y-4">
             @foreach($products as $product)
                 <div class="flex justify-between items-center border-b pb-2">
                     <div>
                         <span class="font-semibold">{{ $product->name }}</span>
-                        <p class="text-sm text-gray-500">Cena: {{ $product->price }}€ | Zalihe:
+                        <p class="text-sm text-gray-500">Price: {{ $product->price }}€ | Zalihe:
                             {{ $product->stock_quantity }}
                         </p>
                     </div>

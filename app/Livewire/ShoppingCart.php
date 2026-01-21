@@ -11,21 +11,26 @@ use App\Jobs\SendLowStockNotification;
 
 class ShoppingCart extends Component
 {
-    public $stockErrors = []; // Niz za greške po ID-u
+    // Array for error messages by ID
+    public $stockErrors = []; 
 
     public function addToCart($productId)
     {
+        //find product by id
         $product = Product::findOrFail($productId);
         $this->stockErrors = []; // reset errors
 
+        // check if adding one more exceeds stock
         $cartItem = Auth::user()->cartItems()->where('product_id', $productId)->first();
         $currentQuantity = $cartItem ? $cartItem->quantity : 0;
 
+        //if adding one more exceeds stock, set error and return
         if (($currentQuantity + 1) > $product->stock_quantity) {
             $this->stockErrors[$productId] = "Nema više zaliha (max: {$product->stock_quantity}).";
             return;
         }
 
+        // add to cart or increment quantity
         if ($cartItem) {
             $cartItem->increment('quantity');
         } else {
@@ -34,97 +39,104 @@ class ShoppingCart extends Component
                 'quantity' => 1
             ]);
         }
-
-        // Added: Check low lvl state after checking stock level
-        //$this->checkStockLevel($product);
     }
 
+    // Update quantity with stock checks
     public function updateQuantity($itemId, $newQuantity)
     {
+        //find cart item by id
         $cartItem = Auth::user()->cartItems()->findOrFail($itemId);
         $product = $cartItem->product;
         $this->stockErrors = [];
 
-        // 1. Ako je ukucano više nego što ima na stanju
+        // 1. If new quantity exceeds stock
         if ($newQuantity > $product->stock_quantity) {
             $this->stockErrors['cart_' . $itemId] = "Max dostupno: {$product->stock_quantity}";
             $cartItem->update(['quantity' => $product->stock_quantity]);
         }
-        // 2. Ako je ukucana nula ili negativan broj
+        // 2. if new quantity is zero or less
         elseif ($newQuantity <= 0) {
             $this->removeFromCart($itemId);
         }
-        // 3. Regularan unos
+        // 3. valid quantity
         else {
             $cartItem->update(['quantity' => $newQuantity]);
         }
 
-        // Added: Check low lvl state after checking stock level
-        //$this->checkStockLevel($product);
-
-        // OVO JE KLJUČ: Prisilno osvežavamo kolekciju iz baze podataka 
-        // kako bi Blade dobio novu vrednost $item->quantity
+        // re-render component to reflect changes         
         $this->render();
     }
 
+    // Remove item from cart
     public function removeFromCart($itemId)
     {
+        //delete cart item by id
         Auth::user()->cartItems()->where('id', $itemId)->delete();
     }
 
+    // Calculate total price
     public function getTotalProperty()
     {
+        //sum price * quantity for all cart items
         return Auth::user()->cartItems->sum(fn($item) => $item->product->price * $item->quantity);
     }
 
 
-
+    // Checkout process
     public function checkout()
     {
+        // get user cart items with products
         $user = Auth::user();
         $items = $user->cartItems()->with('product')->get();
-        $lowStockProducts = []; // Niz za prikupljanje kritičnih proizvoda
-        $lowStockThreshold = 3;
+        $lowStockProducts = []; // array for low stock products
+        $lowStockThreshold = 3; // define low stock threshold
 
         if ($items->isEmpty()) return;
 
+        // Process each cart item
         foreach ($items as $item) {
-            $product = $item->product;
 
+            $product = $item->product;
+            // Check stock availability
             if ($product->stock_quantity >= $item->quantity) {
 
-                // 1. Upiši prodaju u tabelu 'orders'
+                // 1. Write order record
                 \App\Models\Order::create([
                     'user_id' => $user->id,
                     'product_name' => $product->name,
                     'price_at_purchase' => $product->price,
                     'quantity' => $item->quantity,
                 ]);
-                
-                // 2. Smanji stanje na lageru
+
+                // 2. Lessen stock
                 $product->decrement('stock_quantity', $item->quantity);
 
-                // Proveri da li je proizvod pao ispod limita nakon prodaje
+                // 3. Check for low stock
                 if ($product->stock_quantity < $lowStockThreshold) {
                     $lowStockProducts[] = $product;
                 }
             } else {
-                session()->flash('error', "Nema dovoljno zaliha za {$product->name}.");
+                // Not enough stock for this product
+                session()->flash('error', "Not enough stock for this product: {$product->name}.");
                 return;
             }
         }
 
-        // 3. Ako ima proizvoda sa niskim zalihama, pošalji JEDAN Job sa celim nizom
+        // 3. If any products are low in stock, dispatch notification job
         if (!empty($lowStockProducts)) {
+            // Dispatch notification job - send email to admin
             SendLowStockNotification::dispatch($lowStockProducts);
         }
 
+        // 4. Clear user's cart
         $user->cartItems()->delete();
-        session()->flash('message', 'Kupovina uspešna!');
+
+        session()->flash('message', 'Successfully purchased!');
     }
 
     public function render()
     {
+        //return view with products and user's cart items
         return view('livewire.shopping-cart', [
             'products' => Product::all(),
             'cartItems' => Auth::user()->cartItems()->with('product')->get()
