@@ -34,6 +34,11 @@ new class extends Component
                         {{ __('Dashboard') }}
                     </x-nav-link>
                 </div>
+
+                <!-- added link to home-welcome page -->
+                <x-nav-link :href="url('/')" :active="request()->is('/')">
+                    {{ __('Home') }}
+                </x-nav-link>
             </div>
 
             <!-- Settings Dropdown -->
