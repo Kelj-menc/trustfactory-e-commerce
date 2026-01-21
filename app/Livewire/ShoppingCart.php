@@ -77,7 +77,7 @@ class ShoppingCart extends Component
         return Auth::user()->cartItems->sum(fn($item) => $item->product->price * $item->quantity);
     }
 
-    
+
 
     public function checkout()
     {
@@ -86,10 +86,22 @@ class ShoppingCart extends Component
         $lowStockProducts = []; // Niz za prikupljanje kritičnih proizvoda
         $lowStockThreshold = 3;
 
+        if ($items->isEmpty()) return;
+
         foreach ($items as $item) {
             $product = $item->product;
 
             if ($product->stock_quantity >= $item->quantity) {
+
+                // 1. Upiši prodaju u tabelu 'orders'
+                \App\Models\Order::create([
+                    'user_id' => $user->id,
+                    'product_name' => $product->name,
+                    'price_at_purchase' => $product->price,
+                    'quantity' => $item->quantity,
+                ]);
+                
+                // 2. Smanji stanje na lageru
                 $product->decrement('stock_quantity', $item->quantity);
 
                 // Proveri da li je proizvod pao ispod limita nakon prodaje
