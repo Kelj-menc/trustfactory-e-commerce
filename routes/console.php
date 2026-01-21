@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Artisan;
 use App\Jobs\SendDailySalesReportJob;
 use Illuminate\Support\Facades\Schedule;
 
-// every day at 17:15 send daily sales report to admin
-Schedule::job(new SendDailySalesReportJob)->dailyAt('16:45');
+// every day at 23:00 send daily sales report to admin
+Schedule::job(new SendDailySalesReportJob)->dailyAt('23:00');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
