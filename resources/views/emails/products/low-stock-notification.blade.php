@@ -1,18 +1,14 @@
 @component('mail::message')
-# Upozorenje o niskim zalihama
+# Warning about low stock of item/s
 
-Sledeći proizvodi su pali ispod limita:
+The following products fell below the limit:
 
 @foreach($products as $product)
-* **{{ $product->name }}** (Preostalo: {{ $product->stock_quantity }})
+* **{{ $product->name }}** (Left: {{ $product->stock_quantity }})
 @endforeach
 
-Molimo vas da dopunite zalihe.
+Please restock.
 
-<!-- @component('mail::button', ['url' => url('/admin/inventory')])
-Idi na Upravljanje Zalihama
-@endcomponent -->
-
-Hvala,<br>
+Thanks,<br>
 {{ config('app.name') }}
 @endcomponent

@@ -1,6 +1,4 @@
 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-    {{-- To attain knowledge, add things every day; To attain wisdom, subtract things every day. --}}
-
     <!-- list of products -->
     <div class="bg-white p-4 shadow rounded-lg">
         <h2 class="text-xl font-bold mb-4">Available Products</h2>
@@ -10,15 +8,15 @@
                 <div class="flex justify-between items-center border-b pb-2">
                     <div>
                         <span class="font-semibold">{{ $product->name }}</span>
-                        <p class="text-sm text-gray-500">Price: {{ $product->price }}€ | Zalihe:
+                        <p class="text-sm text-gray-500">Price: {{ $product->price }}€ | Stock:
                             {{ $product->stock_quantity }}
                         </p>
                     </div>
                     <button wire:click="addToCart({{ $product->id }})"
                         class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
-                        Dodaj u korpu
+                        Add to cart
                     </button>
-                    {{-- Greška za specifičan proizvod --}}
+                    {{-- Error handle --}}
                     @if(isset($stockErrors[$product->id]))
                         <p class="text-red-500 text-xs mt-1">{{ $stockErrors[$product->id] }}</p>
                     @endif
@@ -27,16 +25,16 @@
         </div>
     </div>
 
-    {{-- KORPA --}}
+    {{-- Cart --}}
     <div class="bg-gray-50 p-4 shadow rounded-lg">
-        <h2 class="text-xl font-bold mb-4">Vaša Korpa</h2>
+        <h2 class="text-xl font-bold mb-4">Your Cart</h2>
         @foreach($cartItems as $item)
             <div class="flex items-center justify-between border-b py-3">
                 <div class="flex-1">
                     <p class="font-medium">{{ $item->product->name }}</p>
                     <p class="text-sm text-gray-600">{{ $item->product->price * $item->quantity }}€</p>
 
-                    {{-- Greška za stavku u korpi --}}
+                    {{-- Error in cart --}}
                     @if(isset($stockErrors['cart_' . $item->id]))
                         <p class="text-red-500 text-xs">{{ $stockErrors['cart_' . $item->id] }}</p>
                     @endif
@@ -52,13 +50,13 @@
                 </div>
             </div>
         @endforeach
-        <div class="mt-4 text-right font-bold">Ukupno: {{ $this->total }}€</div>
+        <div class="mt-4 text-right font-bold">Total: {{ $this->total }}€</div>
 
         <!-- checkout button -->
         @if(count($cartItems) > 0)
             <button wire:click="checkout"
                 class="w-full mt-4 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700">
-                Završi kupovinu (Checkout)
+                Checkout
             </button>
         @endif
     </div>

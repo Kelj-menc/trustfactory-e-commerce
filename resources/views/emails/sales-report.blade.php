@@ -1,20 +1,20 @@
 @component('mail::message')
-# Dnevni izveštaj o prodaji za datum: {{ now()->format('d.m.Y') }}
+# Sales report for date: {{ now()->format('d.m.Y') }}
 
-Pregled prodatih artikala:
+Overview of sold items:
 
 | Proizvod | Količina | Cena (Ukupno) |
 | :--- | :---: | :--- |
 @foreach($sales as $sale)
-| {{ $sale->product_name }} | {{ $sale->total_quantity }} | {{ number_format($sale->total_price, 2) }}€ |
+Product: {{ $sale->product_name }} | quantity: {{ $sale->total_quantity }} | total price: {{ number_format($sale->total_price, 2) }}€ |
 @endforeach
 
-**Ukupna zarada danas: {{ number_format($totalRevenue, 2) }}€**
+**Total earnings today: {{ number_format($totalRevenue, 2) }}€**
 
 @component('mail::button', ['url' => config('app.url')])
-Idi na sajt
+Go to the website
 @endcomponent
 
-Hvala,<br>
+Thanks,<br>
 {{ config('app.name') }}
 @endcomponent
