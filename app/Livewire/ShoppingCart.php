@@ -20,11 +20,9 @@ class ShoppingCart extends Component
         $product = Product::findOrFail($productId);
         $this->stockErrors = []; // reset errors
 
-        // check if adding one more exceeds stock
-        $cartItem = Auth::user()->cartItems()->where('product_id', $productId)->first();
-        $currentQuantity = $cartItem ? $cartItem->quantity : 0;
-
         //if adding one more exceeds stock, set error and return
+        $cartItem = Auth::user()->cartItems()->where('product_id', $productId)->first();
+        $currentQuantity = $cartItem ? $cartItem->quantity : 0;        
         if (($currentQuantity + 1) > $product->stock_quantity) {
             $this->stockErrors[$productId] = "Nema više zaliha (max: {$product->stock_quantity}).";
             return;
@@ -51,7 +49,7 @@ class ShoppingCart extends Component
 
         // 1. If new quantity exceeds stock
         if ($newQuantity > $product->stock_quantity) {
-            $this->stockErrors['cart_' . $itemId] = "Max dostupno: {$product->stock_quantity}";
+            $this->stockErrors['cart_' . $itemId] = "Max available: {$product->stock_quantity}";
             $cartItem->update(['quantity' => $product->stock_quantity]);
         }
         // 2. if new quantity is zero or less
