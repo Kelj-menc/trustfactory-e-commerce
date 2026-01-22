@@ -68,8 +68,7 @@
 
                             <div class="flex items-center gap-3">
                                 <div class="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 px-2">
-                                    <input type="number"
-                                        oninput="if(this.value > {{ $item->product->stock_quantity }}) this.value = {{ $item->product->stock_quantity }};"
+                                    <input type="number"                                        
                                         wire:change="updateQuantity({{ $item->id }}, $event.target.value)" 
                                         min="1"
                                         max="{{ $item->product->stock_quantity }}" 
