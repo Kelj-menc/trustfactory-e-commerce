@@ -31,7 +31,7 @@ class DailySalesReportMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Daily Sales Report Mail - ' . now()->format('d.m.Y'),
+            subject: 'Daily Sales Report - ' . now()->format('d.m.Y'),
         );
     }
 

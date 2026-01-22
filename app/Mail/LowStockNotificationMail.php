@@ -30,7 +30,7 @@ class LowStockNotificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Low Stock Of Items Notification Mail',
+            subject: 'Low Stock Of Items Notification',
         );
     }
 
